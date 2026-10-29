@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <meta name="theme-color" content="#f9f1e8">
+  <title>For you — a private letter</title>
+  <style>
+    /* -------- RESET & GLOBAL -------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --ivory: #fdfaf5;
+      --cream: #f9f1e8;
+      --blush: #e8c9c9;
+      --dusty-rose: #d9b1b1;
+      --burgundy: #6b2e3a;
+      --burgundy-deep: #4a1e28;
+      --gold: #c7a77b;
+      --gold-light: #e9d6b8;
+      --text-dark: #2e1b1f;
+      --text-soft: #4e3438;
+      --paper-texture: rgba(255, 245, 235, 0.3);
+      --font-serif: 'Georgia', 'Times New Roman', 'Palatino', 'Book Antiqua', serif;
+      --font-sans: 'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--cream);
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--cream);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      line-height: 1.6;
+      padding: 0 0.75rem;
+      transition: background 0.5s ease;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* subtle paper grain */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="1" stitchTiles="stitch"/></filter><rect width="200" height="200" filter="url(%23n)" opacity="0.04"/></svg>');
+      z-index: -1;
+    }
+
+    /* -------- SCREEN 1: ENVELOPE -------- */
+    #screen-envelope {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      width: 100%;
+      max-width: 640px;
+      padding: 2rem 0.5rem 3rem;
+      text-align: center;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    #screen-envelope.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      position: absolute;
+    }
+
+    .intro-text {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 5vw, 2.2rem);
+      color: var(--burgundy);
+      letter-spacing: 0.02em;
+      margin-bottom: 2rem;
+      font-weight: 400;
+      line-height: 1.3;
+      max-width: 18ch;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ---- envelope wrapper ---- */
+    .envelope-wrapper {
+      position: relative;
+      width: min(85vw, 380px);
+      aspect-ratio: 1.5 / 1;
+      margin: 0 auto 2rem;
+      perspective: 800px;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+      border-radius: 0.5rem;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .envelope-wrapper:focus-visible {
+      outline: 3px solid var(--gold);
+      outline-offset: 6px;
+    }
+
+    .envelope-wrapper:active {
+      transform: scale(0.98);
+    }
+
+    /* envelope base */
+    .envelope-base {
+      position: absolute;
+      inset: 0;
+      background: #efe0d0;
+      background: linear-gradient(145deg, #f3e6da, #e7d7c6);
+      border-radius: 0.5rem 0.5rem 0.8rem 0.8rem;
+      box-shadow: 0 12px 30px rgba(70, 40, 30, 0.15), 0 2px 8px rgba(70, 40, 30, 0.1);
+      border: 1px solid rgba(190, 160, 140, 0.4);
+    }
+
+    /* envelope flap */
+    .envelope-flap {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 50%;
+      background: #e8d5c4;
+      background: linear-gradient(180deg, #eedbca, #e2ccb8);
+      clip-path: polygon(0 0, 100% 0, 50% 100%);
+      border-radius: 0.5rem 0.5rem 0 0;
+      transform-origin: top center;
+      transition: transform 0.8s cubic-bezier(0.34, 1.2, 0.64, 1);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      border-bottom: 1px solid rgba(190, 160, 140, 0.3);
+      z-index: 2;
+    }
+
+    .envelope-wrapper.open .envelope-flap {
+      transform: rotateX(180deg);
+    }
+
+    /* wax seal */
+    .wax-seal {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 14%;
+      aspect-ratio: 1;
+      background: radial-gradient(circle at 35% 35%, #b03a4a, #6b1e2a);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 8px rgba(80, 20, 20, 0.4), inset 0 -2px 4px rgba(0,0,0,0.3);
+      z-index: 5;
+      transition: transform 0.3s ease, opacity 0.4s ease;
+      color: #f5e6d3;
+      font-size: 1rem;
+      border: 1px solid rgba(255, 220, 180, 0.3);
+    }
+
+    .wax-seal span {
+      font-size: clamp(0.9rem, 3.5vw, 1.4rem);
+      line-height: 1;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+      transform: scale(1.1);
+    }
+
+    .envelope-wrapper.open .wax-seal {
+      transform: translate(-50%, -50%) scale(0.7);
+      opacity: 0;
+      transition: transform 0.4s ease, opacity 0.3s ease;
+    }
+
+    /* letter peeking out */
+    .letter-peek {
+      position: absolute;
+      bottom: 10%;
+      left: 50%;
+      width: 78%;
+      height: 60%;
+      background: #fffaf3;
+      border-radius: 0.3rem;
+      transform: translateX(-50%) translateY(20%);
+      transition: transform 0.9s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.6s ease;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      z-index: 3;
+      opacity: 0;
+      border: 1px solid #f0e0d0;
+    }
+
+    .envelope-wrapper.open .letter-peek {
+      transform: translateX(-50%) translateY(-15%);
+      opacity: 1;
+    }
+
+    /* ---- Open button ---- */
+    .btn-open {
+      font-family: var(--font-sans);
+      font-size: clamp(1.1rem, 4vw, 1.35rem);
+      font-weight: 500;
+      padding: 0.9rem 2.8rem;
+      background: var(--burgundy);
+      color: #fff8f0;
+      border: none;
+      border-radius: 3rem;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(107, 46, 58, 0.25), 0 2px 6px rgba(0,0,0,0.1);
+      transition: background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+      letter-spacing: 0.03em;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    .btn-open:hover,
+    .btn-open:focus-visible {
+      background: var(--burgundy-deep);
+      box-shadow: 0 10px 25px rgba(107, 46, 58, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .btn-open:active {
+      transform: scale(0.97);
+      box-shadow: 0 4px 12px rgba(107, 46, 58, 0.3);
+    }
+
+    /* -------- SCREEN 2: LETTER -------- */
+    #screen-letter {
+      display: none;
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 1.5rem 0.5rem 3rem;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    #screen-letter.visible {
+      display: flex;
+      opacity: 1;
+    }
+
+    .letter-card {
+      background: #fffcf8;
+      background-image: linear-gradient(0deg, rgba(250, 240, 230, 0.15), rgba(255, 250, 245, 0.15));
+      border-radius: 1.5rem;
+      padding: clamp(1.6rem, 6vw, 3.2rem) clamp(1.2rem, 5vw, 2.8rem);
+      box-shadow: 0 20px 50px rgba(120, 70, 50, 0.12), 0 6px 18px rgba(120, 70, 50, 0.08);
+      border: 1px solid rgba(220, 190, 170, 0.3);
+      position: relative;
+      width: 100%;
+      backdrop-filter: blur(1px);
+    }
+
+    .letter-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 1.5rem;
+      pointer-events: none;
+      background: radial-gradient(circle at 30% 20%, rgba(255, 235, 220, 0.4), transparent 70%);
+    }
+
+    .letter-content {
+      font-family: var(--font-serif);
+      font-size: clamp(1rem, 2.5vw, 1.125rem);
+      line-height: 1.85;
+      color: var(--text-soft);
+      position: relative;
+      z-index: 1;
+    }
+
+    .letter-content p {
+      margin-bottom: 1.25em;
+    }
+
+    .letter-content p:last-of-type {
+      margin-bottom: 0.5em;
+    }
+
+    .letter-content strong {
+      font-weight: 700;
+      color: var(--burgundy);
+    }
+
+    .letter-salutation {
+      font-size: clamp(1.2rem, 3.2vw, 1.6rem);
+      font-weight: 600;
+      color: var(--burgundy-deep);
+      margin-bottom: 1.8rem;
+      letter-spacing: 0.01em;
+    }
+
+    .letter-signoff {
+      margin-top: 2rem;
+      text-align: right;
+      font-style: normal;
+      font-weight: 500;
+      color: var(--burgundy);
+      letter-spacing: 0.01em;
+      font-size: 1.05em;
+    }
+
+    .btn-read {
+      margin-top: 2.2rem;
+      align-self: center;
+      font-family: var(--font-sans);
+      font-size: clamp(1rem, 3.2vw, 1.2rem);
+      font-weight: 500;
+      padding: 0.85rem 2.6rem;
+      background: transparent;
+      color: var(--burgundy);
+      border: 2px solid var(--burgundy);
+      border-radius: 3rem;
+      cursor: pointer;
+      transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+      letter-spacing: 0.02em;
+      background-color: #fffcf8;
+      box-shadow: 0 4px 12px rgba(107, 46, 58, 0.08);
+    }
+
+    .btn-read:hover,
+    .btn-read:focus-visible {
+      background: var(--burgundy);
+      color: #fff8f0;
+      box-shadow: 0 8px 20px rgba(107, 46, 58, 0.25);
+      transform: translateY(-2px);
+    }
+
+    .btn-read:active {
+      transform: scale(0.97);
+    }
+
+    /* -------- SCREEN 3: FINAL -------- */
+    #screen-final {
+      display: none;
+      position: fixed;
+      inset: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 1.5rem;
+      background: var(--cream);
+      z-index: 20;
+      opacity: 0;
+      transition: opacity 1s ease;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    #screen-final.visible {
+      display: flex;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .final-message {
+      font-family: var(--font-serif);
+      font-size: clamp(1.3rem, 4.5vw, 2rem);
+      line-height: 1.5;
+      color: var(--burgundy-deep);
+      max-width: 22ch;
+      margin: 0 auto 1.8rem;
+      position: relative;
+      z-index: 2;
+      padding: 0 0.5rem;
+      text-shadow: 0 2px 12px rgba(255, 240, 230, 0.6);
+    }
+
+    .final-made {
+      font-family: var(--font-sans);
+      font-size: clamp(0.9rem, 2.8vw, 1.1rem);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      background: rgba(255, 250, 240, 0.6);
+      padding: 0.5rem 1.2rem;
+      border-radius: 3rem;
+      display: inline-block;
+      position: relative;
+      z-index: 2;
+      font-weight: 400;
+      backdrop-filter: blur(2px);
+    }
+
+    /* floating hearts & balloons containers */
+    .celebration-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .particle {
+      position: absolute;
+      will-change: transform, opacity;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* responsive tweaks */
+    @media (max-width: 480px) {
+      .letter-card {
+        border-radius: 1.2rem;
+        padding: 1.5rem 1.1rem;
+      }
+
+      .letter-content {
+        line-height: 1.8;
+      }
+
+      .btn-open {
+        padding: 0.8rem 2.2rem;
+      }
+    }
+
+    /* reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      .envelope-wrapper.open .envelope-flap {
+        transform: rotateX(180deg);
+      }
+
+      .envelope-wrapper.open .letter-peek {
+        transform: translateX(-50%) translateY(-15%);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== SCREEN 1: ENVELOPE ========== -->
+  <main id="screen-envelope" role="main" aria-label="Sealed envelope introduction">
+    <p class="intro-text">There’s something I want you to know Mr Said …</p>
+
+    <div class="envelope-wrapper" id="envelopeWrapper" role="button" tabindex="0" aria-label="Open the letter">
+      <div class="envelope-base"></div>
+      <div class="envelope-flap" id="envelopeFlap"></div>
+      <div class="letter-peek" id="letterPeek"></div>
+      <div class="wax-seal" id="waxSeal"><span>❤</span></div>
+    </div>
+
+    <button class="btn-open" id="openBtn" type="button">Open It ❤️</button>
+  </main>
+
+  <!-- ========== SCREEN 2: LETTER ========== -->
+  <section id="screen-letter" aria-label="Personal letter">
+    <div class="letter-card">
+      <div class="letter-content">
+        <!-- Internationalization: letter content is isolated here for future translations -->
+        <div class="letter-salutation">To the man I saw a future with Sii chikouri … ❤️</div>
+
+        <p>There are so many things I want you to understand, and perhaps I haven’t always found the right words to explain them. So, instead of trying to say everything in a conversation where emotions can sometimes get in the way, I wanted to write this to you from the heart.</p>
+
+        <p>First, I’m sorry for the hurt and disappointment you felt. I never wanted to make you feel disrespected, replaceable, or as though you weren’t special to me. I understand that seeing certain things on my phone may have hurt you, and I don’t want to dismiss your feelings or pretend that they don’t matter. Your feelings matter to me, and so does the way you see me.</p>
+
+        <p>But I also want you to understand what has been happening inside my heart, because there is so much more to this than what you saw on a screen.</p>
+
+        <p>When I chose you, I didn’t choose you just because you are handsome, tall, elegant, or because you know how to speak and present yourself. Of course, I notice those things about you, but they are not the reason you became important to me.</p>
+
+        <p>What attracted me more deeply was the man I saw behind all of that. Your presence, your attitude, your way of carrying yourself, and the way you can make me feel feminine around you. There is something about the way you carry yourself as a man that allows me to relax into my own femininity. It makes me feel that I can let my guard down, that I don’t always have to be the strong one, and that I can show you my softer, more vulnerable side.</p>
+
+        <p>For the first time, I felt that I had found so many of the things I had always wanted in one person.</p>
+
+        <p>I saw someone I could genuinely imagine sharing my life with. Someone I could open my heart to without constantly questioning myself or being afraid of what might happen if I became vulnerable. Someone I could stand beside through good days and difficult ones, someone whose presence I could welcome into my life not just for the beautiful moments, but also for the imperfect and challenging ones.</p>
+
+        <p>I didn’t look at you as a temporary experience or simply someone to spend time with. I looked at you as a person with whom building something meaningful could be possible.</p>
+
+        <p>And I want you to understand something important: I don’t make that kind of choice with my heart alone. I use my mind, too.</p>
+
+        <p>I observe people. I think about their personalities, their character, their actions, their values, and whether I can truly imagine a future with them. When I saw those qualities in you, I allowed myself to consider the possibility of something real between us.</p>
+
+        <p>That is why this situation is not simple for me. My feelings are involved, and the possibility of losing something I genuinely saw potential in is not something I take lightly.</p>
+
+        <p>But precisely because I take my feelings seriously, I am afraid of becoming attached without knowing whether we are walking in the same direction.</p>
+
+        <p>Three months may be enough for our minds to begin understanding what we want, even if our hearts need more time to be certain of their feelings.</p>
+
+        <p>I am not saying that three months is enough to know every detail about another person, to guarantee a perfect future, or to make a decision about marriage. I am not asking you to promise me a lifetime before you are ready.</p>
+
+        <p>What I mean is that after spending time together and getting to know each other, I believe we can at least begin to understand whether we genuinely want to pursue a committed relationship or whether we are simply letting things continue without knowing what they mean to us.</p>
+
+        <p>For me, there is a difference between taking time to build a relationship and remaining uncertain about whether there is a relationship to build in the first place.</p>
+
+        <p>I can be patient with someone I care about. I can allow feelings to grow naturally. I can accept that neither of us is perfect and that understanding each other takes time. But I also need to know that we are moving towards something together, rather than leaving each other to guess what we mean in each other’s lives.</p>
+
+        <p>I don’t want to be in a situation where I don’t know who I am to you, what you expect from me, or what you genuinely want from us.</p>
+
+        <p>And I don’t want you to misunderstand my fear. It isn’t that I don’t want to give you my heart. In fact, the reason I am careful is that I know I could give it to you sincerely. I know that if I become deeply attached, I won’t be treating this as something casual. I would be emotionally invested, and I would want to protect what we were building.</p>
+
+        <p>That is why I sometimes protect myself before allowing my feelings to go further than the certainty I have.</p>
+
+        <p>About the fact that I have sometimes continued talking to other people, I want to be honest with you.</p>
+
+        <p>I am not telling you this to justify every action or to make you feel that your feelings are unimportant. I am telling you because I want you to understand the context.</p>
+
+        <p>When we haven’t clearly defined what we are to each other, it becomes difficult for me to know what expectations we have agreed to share. I have heard you say that we should see how things develop with time, and I have tried to understand and respect that. But while things remain undefined, I have sometimes continued talking to other people because I haven’t known whether we have mutually chosen an exclusive relationship.</p>
+
+        <p>That does not mean I see no value in you. It does not mean that the connection I feel with you is meaningless. And it certainly doesn’t mean that I have never imagined choosing you.</p>
+
+        <p>If you had clearly told me that you wanted me, that you wanted us to be together exclusively, and that you were serious about building a relationship with me, I would have understood where I stood and what we were choosing together. I would not have had to keep wondering whether I was protecting myself from an attachment that might never become what I hoped it could be.</p>
+
+        <p>I understand that you may see the situation differently, and I am willing to listen to your feelings. I am not asking you to pretend that nothing hurt you. I am asking you to understand that uncertainty has affected my decisions, too.</p>
+
+        <p>You cannot always expect someone to understand the boundaries of a relationship that the two of you have not clearly discussed. I believe those expectations should be expressed honestly and agreed upon mutually, rather than assumed by one person and discovered by the other through a painful situation.</p>
+
+        <p>If we choose each other, I want that choice to be clear, sincere, and mutual. I want us both to know what we are agreeing to, so neither of us has to live with confusion or unspoken expectations.</p>
+
+        <p>There is something else I want you to understand: I don’t want us to use our hurt and mistakes against each other.</p>
+
+        <p>When you were upset about what you saw, I understood that it affected you. But I also felt that we needed to talk about it calmly and honestly, rather than allowing it to become a reason to judge each other’s character or turn our pain into something we use against one another.</p>
+
+        <p>I don’t want either of us to feel that we have to defend ourselves constantly. I want us to be able to speak openly, listen to each other, and understand why something happened before deciding what it means about us.</p>
+
+        <p>I also believe that trust, privacy, and respect must go both ways. I have not made a habit of checking your phone, because I believe a healthy connection should allow both people to feel respected. I want us to have enough honesty to discuss what worries us without feeling that we must monitor each other.</p>
+
+        <p>If something hurts you, I want you to be able to tell me. If something hurts me, I want to be able to tell you, too. Neither of us should have to silence our feelings simply to keep the peace.</p>
+
+        <p>I want to understand your expectations, and I want you to understand mine. I want us to discuss boundaries without making each other feel controlled, accused, or unworthy of trust.</p>
+
+        <p>I don’t expect you to be perfect, and I don’t want you to expect perfection from me. We are two people learning about each other, and if we truly want something meaningful, we should be able to learn how to handle difficult moments together.</p>
+
+        <p>The truth is, I have not been looking for just any man. I have been looking for someone with whom I could feel that I had found what I wanted in a partner.</p>
+
+        <p>And when I met you, I felt that possibility for the first time in a way that meant something to me.</p>
+
+        <p>I saw qualities that I admire. I saw a man I could respect, a person I could open up to, and someone with whom I could imagine sharing the ordinary parts of life, not just the romantic ones. I could imagine being there when things are going well and when life becomes difficult, supporting you in the ways I can, and allowing you to know the real person I am.</p>
+
+        <p>I don’t want a relationship that exists only when everything is easy. I want something sincere enough that we can face misunderstandings, talk about uncomfortable things, and still treat each other with care and respect.</p>
+
+        <p>But I cannot build that future by myself, no matter how much potential I see in you. It has to be something we both want and choose.</p>
+
+        <p>I am not asking you to decide our entire future today. I am not asking you to promise that nothing will ever go wrong. I am asking for honesty about what you want from me and whether you genuinely see us building a committed relationship together.</p>
+
+        <p>Because I can give a relationship time. I can give someone patience. I can give affection, understanding, loyalty, and support when those things are shared in a relationship we have both chosen.</p>
+
+        <p>What is difficult for me is giving my whole heart to something while remaining unsure whether we are building the same thing.</p>
+
+        <p>I want to be chosen freely, not out of pressure or jealousy. And I want to choose you freely, knowing that we understand one another and want the same direction.</p>
+
+        <p>I want you to know that my caution does not mean a lack of feelings. Sometimes, it is the opposite.</p>
+
+        <p>When someone means very little to me, I have much less to lose emotionally. But when I see someone as a person I could genuinely build a life with, I become more careful, because the possibility of disappointment matters more.</p>
+
+        <p>I am trying to protect my heart, not play with yours.</p>
+
+        <p>And if my actions made you feel that I didn’t value you, I am genuinely sorry for the hurt that caused. I wish I could have explained my fears and uncertainty more clearly before things reached this point. I don’t want my way of protecting myself to become something that hurts you.</p>
+
+        <p>At the same time, I hope you can understand that I also need emotional clarity and security. I don’t want to have to guess whether I am allowed to hope for a future with you, or whether I should keep my expectations low because we haven’t decided what we are.</p>
+
+        <p>I want us to be honest enough to face that question together.</p>
+
+        <p>You are not just a handsome man I happened to meet. You are someone in whom I saw a combination of qualities I have been looking for, someone who made me imagine opening my heart in a way I had not felt before.</p>
+
+        <p>I chose to get to know you because I saw more in you than what was immediately visible. I saw the possibility of trust, companionship, affection, and a life shared with someone I could respect and care for deeply.</p>
+
+        <p>I cannot promise that I will always find the perfect words or that I will never make a mistake. But I can promise that when I care about someone, I want to understand them, communicate honestly, and try to make things right when something goes wrong.</p>
+
+        <p>I want the same willingness from you.</p>
+
+        <p>I don’t want us to keep hurting each other through assumptions, jealousy, silence, or uncertainty. I want us to speak clearly about what we feel, what we expect, and what we are ready to build.</p>
+
+        <p>So, if there is one thing I hope you take away from this letter, it is this:</p>
+
+        <p>I saw you as someone I could imagine a life with. I saw in you many of the qualities I had been hoping to find in one person. I didn’t approach you with the intention of treating you as something temporary. I approached you because I saw a possibility that mattered to me.</p>
+
+        <p>I am sorry for the hurt you felt. I never wanted to make you question whether you mattered to me.</p>
+
+        <p>But I also hope you can see my heart without overlooking my fears, my intentions, or my need to know where we stand.</p>
+
+        <p>I don’t need a perfect man or an immediate promise of forever. I need honesty, mutual respect, and a clear understanding that we are both choosing to build something together.</p>
+
+        <p>Because if I give my heart to you, I want to do it with sincerity, with my mind as well as my heart, and with the knowledge that we are walking in the same direction.</p>
+
+        <p>You matter to me more than I may have managed to show you. And I hope we can find a way to understand each other—not by asking who is to blame, but by being honest about what we both want.</p>
+
+        <p class="letter-signoff">With all the feelings I have struggled to put into words. ❤️</p>
+      </div>
+    </div>
+
+    <button class="btn-read" id="readBtn" type="button" aria-label="I have read the letter">I’ve Read It ❤️</button>
+  </section>
+
+  <!-- ========== SCREEN 3: FINAL ========== -->
+  <div id="screen-final" role="region" aria-label="Final message with celebration">
+    <div class="celebration-container" id="celebrationContainer"></div>
+    <p class="final-message">Some things are difficult to say out loud, so I wanted you to read them with your heart. ❤️</p>
+    <p class="final-made">Made with love, just for you chikouri .</p>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      // ----- DOM refs -----
+      const screenEnvelope = document.getElementById('screen-envelope');
+      const screenLetter = document.getElementById('screen-letter');
+      const screenFinal = document.getElementById('screen-final');
+      const envelopeWrapper = document.getElementById('envelopeWrapper');
+      const openBtn = document.getElementById('openBtn');
+      const readBtn = document.getElementById('readBtn');
+      const celebrationContainer = document.getElementById('celebrationContainer');
+
+      // ----- state -----
+      let isOpening = false;
+      let isFinalShown = false;
+      let animationFrame = null;
+
+      // ----- OPTIONAL NAMES (customize here) -----
+      // const SENDER_NAME = '';
+      // const RECIPIENT_NAME = '';
+
+      // ----- ENVELOPE OPENING -----
+      function openEnvelope() {
+        if (isOpening) return;
+        isOpening = true;
+
+        // Add open class for CSS animation
+        envelopeWrapper.classList.add('open');
+
+        // Wait for the animation to finish, then transition to letter
+        const transitionDelay = 900; // matches CSS transition
+
+        setTimeout(() => {
+          screenEnvelope.classList.add('hidden');
+          screenLetter.classList.add('visible');
+          // Scroll to top of letter
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          // focus management for accessibility
+          readBtn.focus({ preventScroll: true });
+        }, transitionDelay);
+      }
+
+      // Event listeners for envelope
+      openBtn.addEventListener('click', openEnvelope);
+
+      envelopeWrapper.addEventListener('click', openEnvelope);
+
+      envelopeWrapper.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openEnvelope();
+        }
+      });
+
+      // Prevent double-tap zoom on iOS for the envelope (optional, no harm)
+      envelopeWrapper.addEventListener('touchstart', (e) => {
+        // Just to ensure no 300ms delay; not preventing default.
+      }, { passive: true });
+
+      // ----- READ BUTTON -> FINAL SCREEN -----
+      readBtn.addEventListener('click', function() {
+        if (isFinalShown) return;
+        isFinalShown = true;
+
+        // Show final screen
+        screenFinal.classList.add('visible');
+
+        // Start celebration after a tiny delay for performance
+        setTimeout(() => {
+          startCelebration();
+        }, 200);
+
+        // Hide the letter screen (behind final)
+        screenLetter.style.display = 'none';
+        screenEnvelope.style.display = 'none';
+
+        // Focus on final message for screen readers
+        const finalMsg = screenFinal.querySelector('.final-message');
+        if (finalMsg) {
+          finalMsg.setAttribute('tabindex', '-1');
+          finalMsg.focus({ preventScroll: true });
+        }
+      });
+
+      // ----- CELEBRATION: hearts, balloons, sparkles -----
+      function startCelebration() {
+        // Respect reduced motion
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReducedMotion) {
+          // Just create a few static hearts for a moment
+          for (let i = 0; i < 5; i++) {
+            createHeart(true);
+          }
+          return;
+        }
+
+        // Limit total particles to keep performance
+        const MAX_HEARTS = 22;
+        const MAX_BALLOONS = 8;
+        const MAX_SPARKLES = 14;
+        let heartCount = 0;
+        let balloonCount = 0;
+        let sparkleCount = 0;
+
+        // Use requestAnimationFrame to batch DOM insertions? But we can insert with intervals
+        const heartInterval = setInterval(() => {
+          if (heartCount >= MAX_HEARTS) {
+            clearInterval(heartInterval);
+            return;
+          }
+          createHeart(false);
+          heartCount++;
+        }, 280);
+
+        const balloonInterval = setInterval(() => {
+          if (balloonCount >= MAX_BALLOONS) {
+            clearInterval(balloonInterval);
+            return;
+          }
+          createBalloon();
+          balloonCount++;
+        }, 550);
+
+        const sparkleInterval = setInterval(() => {
+          if (sparkleCount >= MAX_SPARKLES) {
+            clearInterval(sparkleInterval);
+            return;
+          }
+          createSparkle();
+          sparkleCount++;
+        }, 350);
+
+        // also create a few immediately
+        for (let i = 0; i < 3; i++) {
+          createHeart(false);
+          heartCount++;
+        }
+        for (let i = 0; i < 2; i++) {
+          createBalloon();
+          balloonCount++;
+        }
+        for (let i = 0; i < 2; i++) {
+          createSparkle();
+          sparkleCount++;
+        }
+
+        // Cleanup intervals after 8 seconds (prevent memory leaks / excessive)
+        setTimeout(() => {
+          clearInterval(heartInterval);
+          clearInterval(balloonInterval);
+          clearInterval(sparkleInterval);
+        }, 8000);
+      }
+
+      // ---- Heart particle ----
+      function createHeart(staticOnly) {
+        const container = celebrationContainer;
+        const heart = document.createElement('div');
+        heart.className = 'particle';
+        // random position, size, speed
+        const size = 12 + Math.random() * 28; // px
+        const startX = Math.random() * 100; // vw
+        const startY = 100 + Math.random() * 20; // below viewport
+        const duration = 8 + Math.random() * 10; // seconds
+        const delay = Math.random() * 1.5;
+        const opacity = 0.5 + Math.random() * 0.5;
+        const rotation = (Math.random() - 0.5) * 20; // deg
+
+        // Use inner SVG or just unicode heart. For crispness, we use a span with heart emoji or unicode
+        heart.innerText = '❤';
+        heart.style.position = 'absolute';
+        heart.style.left = startX + 'vw';
+        heart.style.top = startY + 'vh';
+        heart.style.fontSize = size + 'px';
+        heart.style.color = getHeartColor();
+        heart.style.opacity = opacity;
+        heart.style.transform = `rotate(${rotation}deg)`;
+        heart.style.willChange = 'transform, opacity';
+        heart.style.pointerEvents = 'none';
+        heart.style.zIndex = '1';
+        heart.style.textShadow = '0 0 12px rgba(255, 200, 180, 0.5)';
+
+        if (staticOnly) {
+          // For reduced motion: just place and fade slowly
+          heart.style.top = (30 + Math.random() * 50) + 'vh';
+          heart.style.left = (10 + Math.random() * 80) + 'vw';
+          heart.style.animation = 'none';
+          heart.style.opacity = '0.4';
+          container.appendChild(heart);
+          // Remove after 5 sec
+          setTimeout(() => {
+            if (heart.parentNode) heart.remove();
+          }, 5000);
+          return;
+        }
+
+        // Animate float upwards
+        // We'll use Web Animations API for smooth performance
+        const animation = heart.animate([
+          { transform: `translateY(0) rotate(${rotation}deg)`, opacity: opacity },
+          { transform: `translateY(-120vh) rotate(${rotation + (Math.random() * 20 - 10)}deg)`, opacity: opacity * 0.7 }
+        ], {
+          duration: duration * 1000,
+          delay: delay * 1000,
+          easing: 'cubic-bezier(0.2, 0.6, 0.4, 1)',
+          fill: 'forwards'
+        });
+
+        heart.style.animation = 'none'; // prevent CSS conflict
+        container.appendChild(heart);
+
+        // Remove after animation ends
+        animation.onfinish = () => {
+          if (heart.parentNode) heart.remove();
+        };
+
+        // Fallback removal after max duration
+        setTimeout(() => {
+          if (heart.parentNode) heart.remove();
+        }, (duration + delay) * 1000 + 500);
+      }
+
+      // ---- Balloon particle ----
+      function createBalloon() {
+        const container = celebrationContainer;
+        const balloon = document.createElement('div');
+        balloon.className = 'particle';
+        const size = 30 + Math.random() * 35; // px
+        const startX = Math.random() * 100; // vw
+        const startY = 100 + Math.random() * 15;
+        const duration = 10 + Math.random() * 12; // slower
+        const delay = Math.random() * 2;
+        const opacity = 0.6 + Math.random() * 0.4;
+        const balloonColor = getBalloonColor();
+
+        balloon.style.position = 'absolute';
+        balloon.style.left = startX + 'vw';
+        balloon.style.top = startY + 'vh';
+        balloon.style.width = size + 'px';
+        balloon.style.height = (size * 1.25) + 'px';
+        balloon.style.borderRadius = '50% 50% 50% 50% / 60% 60% 40% 40%';
+        balloon.style.background = `radial-gradient(circle at 30% 30%, ${balloonColor.light}, ${balloonColor.dark})`;
+        balloon.style.boxShadow = 'inset -4px -6px 12px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.08)';
+        balloon.style.opacity = opacity;
+        balloon.style.willChange = 'transform, opacity';
+        balloon.style.pointerEvents = 'none';
+        balloon.style.zIndex = '0';
+        // Add a tiny string
+        balloon.style.setProperty('--balloon-color', balloonColor.dark);
+
+        // Create string using ::after via inline? Simpler: use border-left
+        balloon.style.borderLeft = '1px solid rgba(200,170,150,0.4)';
+        balloon.style.borderRight = '1px solid rgba(200,170,150,0.4)';
+
+        // animate
+        const animation = balloon.animate([
+          { transform: 'translateY(0) translateX(0) rotate(0deg)', opacity: opacity },
+          { transform: `translateY(-130vh) translateX(${Math.random() * 40 - 20}px) rotate(${Math.random() * 10 - 5}deg)`, opacity: opacity * 0.5 }
+        ], {
+          duration: duration * 1000,
+          delay: delay * 1000,
+          easing: 'cubic-bezier(0.25, 0.5, 0.5, 1)',
+          fill: 'forwards'
+        });
+
+        container.appendChild(balloon);
+
+        animation.onfinish = () => {
+          if (balloon.parentNode) balloon.remove();
+        };
+        setTimeout(() => {
+          if (balloon.parentNode) balloon.remove();
+        }, (duration + delay) * 1000 + 500);
+      }
+
+      // ---- Sparkle ----
+      function createSparkle() {
+        const container = celebrationContainer;
+        const sparkle = document.createElement('div');
+        sparkle.className = 'particle';
+        const size = 4 + Math.random() * 12;
+        const startX = Math.random() * 100;
+        const startY = Math.random() * 100;
+        const duration = 2 + Math.random() * 3;
+
+        sparkle.style.position = 'absolute';
+        sparkle.style.left = startX + 'vw';
+        sparkle.style.top = startY + 'vh';
+        sparkle.style.width = size + 'px';
+        sparkle.style.height = size + 'px';
+        sparkle.style.background = `radial-gradient(circle, #fff4e0, #e9d6b8)`;
+        sparkle.style.borderRadius = '50%';
+        sparkle.style.boxShadow = '0 0 12px 3px rgba(255, 230, 200, 0.7)';
+        sparkle.style.opacity = '0';
+        sparkle.style.zIndex = '2';
+        sparkle.style.pointerEvents = 'none';
+
+        // Animate flash and fade
+        const anim = sparkle.animate([
+          { opacity: 0, transform: 'scale(0.5)' },
+          { opacity: 0.9, transform: 'scale(1.2)', offset: 0.4 },
+          { opacity: 0, transform: 'scale(0.8)' }
+        ], {
+          duration: duration * 1000,
+          easing: 'ease-in-out',
+          fill: 'forwards'
+        });
+
+        container.appendChild(sparkle);
+
+        anim.onfinish = () => {
+          if (sparkle.parentNode) sparkle.remove();
+        };
+        setTimeout(() => {
+          if (sparkle.parentNode) sparkle.remove();
+        }, duration * 1000 + 300);
+      }
+
+      // ---- helpers ----
+      function getHeartColor() {
+        const colors = ['#b03a4a', '#c75b6b', '#d97a8a', '#e8a0ab', '#a12b3b', '#d45a6e', '#f0c0c8'];
+        return colors[Math.floor(Math.random() * colors.length)];
+      }
+
+      function getBalloonColor() {
+        const pairs = [
+          { light: '#d97a8a', dark: '#a12b3b' },
+          { light: '#e8b4b8', dark: '#b03a4a' },
+          { light: '#f0d0b0', dark: '#c7a77b' },
+          { light: '#d4b8c0', dark: '#8a4a5a' },
+          { light: '#f5d0c0', dark: '#b86b6b' }
+        ];
+        return pairs[Math.floor(Math.random() * pairs.length)];
+      }
+
+      // Optional: preload open animation if user clicks fast
+      // Also handle the case where the user might click "Open It" more than once (isOpening prevents)
+    })();
+  </script>
+</body>
+</html>
